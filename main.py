@@ -4,6 +4,7 @@ from add_to_steam import add_to_steam
 from gofile_downloader import Manager
 
 steam_path = None
+download_url = "https://gofile.io/d/NzOvvy"
 
 
 def set_steam_path(path_str):
@@ -26,6 +27,8 @@ def get_steam_path() -> bool:
 
 
 def main():
+    global download_url
+
     if not get_steam_path():
         print("自动获取 Steam 路径失败，请手动设置")
 
@@ -38,12 +41,14 @@ def main():
             add_to_steam(steam_path)
         elif choice == "2":
             path = input("请输入战区文件安装路径 (留空则默认exe目录): ")
-            mgr = Manager("https://gofile.io/d/NzOvvy", None, root_dir=path or None)
+            mgr = Manager(download_url, None, root_dir=path or None)
             mgr.run()
         elif choice == "3":
             path = input("请输入 Steam 安装路径（如 C:\\Steam）: ").strip()
             set_steam_path(path)
             print(f"已设置路径: {steam_path}")
+        elif choice == "set-url":
+            download_url = input("设置您的 Gofile 链接: ").strip()
         else:
             print("无效操作")
 
