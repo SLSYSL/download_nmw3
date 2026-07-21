@@ -262,26 +262,31 @@ class Downloader:
             part_size = int(path.getsize(tmp_file))
             headers = {"Range": f"bytes={part_size}-"}
 
-        for _ in range(self._number_retries):
+        retry_count = 0
+        while not self._stop_event.is_set():
             try:
-                part_size: int = 0
+                part_size = 0
+                headers = {}
                 if path.isfile(tmp_file):
                     part_size = int(path.getsize(tmp_file))
                     headers = {"Range": f"bytes={part_size}-"}
 
-                has_size: str | None = self._perform_download(
-                    file_info,
-                    url,
-                    tmp_file,
-                    headers,
-                    part_size
+                has_size = self._perform_download(
+                    file_info, url, tmp_file, headers, part_size
                 )
-            except Timeout:
-                continue
-            else:
                 if has_size:
                     self._finalize_download(file_info, tmp_file, has_size)
-                break
+                    break  # 下载成功，退出循环
+                else:
+                    # 下载失败（如网络错误），重试
+                    retry_count += 1
+                    _print(f"下载失败，重试 ({retry_count})...\n")
+                    continue
+            except Exception as e:
+                # 捕获所有异常，重试
+                retry_count += 1
+                _print(f"下载异常: {e}，重试 ({retry_count})...\n")
+                continue
 
 
     @staticmethod
@@ -733,7 +738,7 @@ class Manager:
         """
 
         # Defaults to 5 concurrent downloads
-        self._max_workers: int = int(getenv("GF_MAX_CONCURRENT_DOWNLOADS", 5))
+        self._max_workers: int = int(getenv("GF_MAX_CONCURRENT_DOWNLOADS", 16))
         # Defaults to 5 retries
         self._number_retries: int = int(getenv("GF_MAX_RETRIES", 5))
         # Connection and read timeout, defaults to 15 seconds
